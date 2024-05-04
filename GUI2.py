@@ -4,11 +4,10 @@ from Functions import *
 from tkinter import messagebox
 from datetime import datetime
 from Communication import *
-from CollectData import collect_dataset
+from CollectData import collect_dataset, fill_buffer
 from multiprocessing import Pool
 from ML import model
 from Graphs import *
-from CollectData import fill_buffer
 
 
 # message types are Information Warning and Error
@@ -38,103 +37,140 @@ def update_time():
 
 # start communication button
 def GButton_295_command():
-    # print("command")
-    Com_Port = find_arduino()
-    Serial_Obj = get_serial_port(port_, 115200)
-    if port_ is not None:
-        show_message("Information", f"Port - {port_} with baud rate - 115200 is ready")
+    global ser_
+    global port_
+
+    ok, ser_, port_, baudRate = [ComOK()[0], ComOK()[1], ComOK()[2], ComOK()[3]]
+    if ok:
+        show_message("Information", f"Port - {port_} with baud rate - {baudRate} is ready")
+        GLabel_485.config(text=port_)
+        GLabel_486.config(text=baudRate)
     else:
         show_message("Error", "No port found")
+        GLabel_485.config(text=port_)
+        GLabel_486.config(text=baudRate)
 
 
 def GButton_910_command():
-    show_message("Information", "make sure not to unplug device while training")
+    show_message("Information", "Make sure not to unplug device while training \nThe default method is LoadFromFIle")
+    show_message("Information", "'Start Communication' button should be clicked before training")
     method = get_method()
     print(method)
-    if method[0] == "LoadFromFile" or method is None:
-        x_data_buffer, y_data_buffer, z_data_buffer = collect_dataset(2000, 10, 512, ser_)
-        with Pool() as pool:
-            trained_models = pool.map(model, (x_data_buffer, y_data_buffer, z_data_buffer))
+    try:
+        if method[0] == "LoadFromFile" or method is None:
+            x_data_buffer, y_data_buffer, z_data_buffer = collect_dataset(2000, 10, 512, ser_)
+            with Pool() as pool:
+                trained_models = pool.map(model, (x_data_buffer, y_data_buffer, z_data_buffer))
 
-    else:
-        x_data = np.loadtxt("x_data.txt").reshape(-1, 1)
-        y_data = np.loadtxt("y_data.txt").reshape(-1, 1)
-        z_data = np.loadtxt("z_data.txt").reshape(-1, 1)
-        with Pool() as pool:
-            trained_models = pool.map(model, (x_data, y_data, z_data))
+        else:
+            x_data = np.loadtxt("x_data.txt").reshape(-1, 1)
+            y_data = np.loadtxt("y_data.txt").reshape(-1, 1)
+            z_data = np.loadtxt("z_data.txt").reshape(-1, 1)
+            with Pool() as pool:
+                trained_models = pool.map(model, (x_data, y_data, z_data))
+    except:
+        show_message("Error", "Cannot Train! make sure your plugged and pressed 'start communication' button'")
 
 
 def GButton_536_command():
     print("Entered...")
-    num_samples = 512
-    sampling_frequency = 250
+    show_message("Information", "'Start Communication' button should be clicked before visualizing")
+    try:
+        num_samples = 512
+        sampling_frequency = 250
 
-    x_data = [0.0] * num_samples
-    y_data = [0.0] * num_samples
-    z_data = [0.0] * num_samples
+        x_data = [0.0] * num_samples
+        y_data = [0.0] * num_samples
+        z_data = [0.0] * num_samples
 
-    fig, axs = plt.subplots(2, 3, figsize=(15, 5))
-    while True:
-        print("Entered while loop...")
-        received_data = str(ser_.readline())[2:-5].casefold()
-        print("Received: ", received_data)
+        fig, axs = plt.subplots(2, 3, figsize=(15, 5))
+        while True:
+            print("Entered while loop...")
+            received_data = str(ser_.readline())[2:-5].casefold()
+            print("Received: ", received_data)
 
-        if received_data == "x":
-            x_data = fill_buffer(num_samples, ser_)
-        elif received_data == "y":
-            y_data = fill_buffer(num_samples, ser_)
-        elif received_data == "z":
-            z_data = fill_buffer(num_samples, ser_)
-        else:
-            continue
+            if received_data == "x":
+                x_data = fill_buffer(num_samples, ser_)
+            elif received_data == "y":
+                y_data = fill_buffer(num_samples, ser_)
+            elif received_data == "z":
+                z_data = fill_buffer(num_samples, ser_)
+            else:
+                continue
 
-        # x_data, y_data, z_data = get_new_dataset(ser, num_samples)
-        print(x_data)
-        print(y_data)
-        print(z_data)
-        print("Visualizing...")
-        visualize_data(x_data, y_data, z_data, sampling_frequency, "time", fig, axs)
+            # x_data, y_data, z_data = get_new_dataset(ser, num_samples)
+            print(x_data)
+            print(y_data)
+            print(z_data)
+            print("Visualizing...")
+            visualize_data(x_data, y_data, z_data, sampling_frequency, "time", fig, axs)
+    except:
+        show_message("Error", "Cannot Visualize! make sure your plugged and pressed 'start communication' button'")
 
+# format the data size and time to integer
+def format_data(data):
+    try:
+        return int(data)
+    except:
+        return None
+
+
+# return size of data to be collected
+def getDataSize():
+    return format_data(GLineEdit_334.get())
+
+
+# return time of data to be collected
+def getTime():
+    return format_data(GLineEdit_335.get())
 
 
 def GButton_537_command():
+    show_message("Information", "'Start Communication' button should be clicked before visualizing")
     global x
+    try:
+        print(getDataSize())
+        print(getTime())
+        x = collect_dataset(20000, 10, 512, ser_)
+    except:
+        show_message("Error", "Cannot collect data! make sure your plugged")
 
-    x = collect_dataset(20000, 10, 512, ser_)
+
+
 
 
 # this function validates the machine name
-def GButton_638_command():
-    # print("command")
-    machine_name = GLineEdit_334.get()
-    validation = validate_machine_name(machine_name)
-    if validation[0]:
-        print(validation[1])
-        show_message("Information", validation[1])
-        print(Machine_List())
-        add_machine(machine_name)  # add the machine name to the Machines.txt file
-        print(Machine_List())
-        create_a_folder(machine_name)  # create a folder for the machine
-        GListBox_969.insert(tk.END, machine_name)  # add the machine name to the list box
-        GLineEdit_334.delete(0, tk.END)  # clear the entry box
-    else:
-        print(validation[1])
-        show_message("Error", validation[1])
+# def GButton_638_command():
+#     # print("command")
+#     machine_name = GLineEdit_334.get()
+#     validation = validate_machine_name(machine_name)
+#     if validation[0]:
+#         print(validation[1])
+#         show_message("Information", validation[1])
+#         print(Machine_List())
+#         add_machine(machine_name)  # add the machine name to the Machines.txt file
+#         print(Machine_List())
+#         create_a_folder(machine_name)  # create a folder for the machine
+#         GListBox_969.insert(tk.END, machine_name)  # add the machine name to the list box
+#         GLineEdit_334.delete(0, tk.END)  # clear the entry box
+#     else:
+#         print(validation[1])
+#         show_message("Error", validation[1])
 
 
 # this function deletes the selected machine from the list box and the Machines.txt file
-def GButton_450_command():
-    deleting_machine = GListBox_969.curselection()
-    if deleting_machine:
-        selected_index = deleting_machine[0]  # Assuming single selection
-        selected_value = GListBox_969.get(selected_index)
-        print("Selected value:", selected_value)
-        deleteMachineFolder(selected_value)  # delete the folder of the selected machine
-        GListBox_969.delete(selected_index)  # delete the selected machine from the list box
-        delete_machine(selected_value)  # delete the selected machine from the Machines.txt file
-    else:
-        print("No item selected.")
-        show_message("Error", "No item selected.")
+# def GButton_450_command():
+#     deleting_machine = GListBox_969.curselection()
+#     if deleting_machine:
+#         selected_index = deleting_machine[0]  # Assuming single selection
+#         selected_value = GListBox_969.get(selected_index)
+#         print("Selected value:", selected_value)
+#         deleteMachineFolder(selected_value)  # delete the folder of the selected machine
+#         GListBox_969.delete(selected_index)  # delete the selected machine from the list box
+#         delete_machine(selected_value)  # delete the selected machine from the Machines.txt file
+#     else:
+#         print("No item selected.")
+#         show_message("Error", "No item selected.")
 
 
 if __name__ == "__main__":
@@ -147,38 +183,7 @@ if __name__ == "__main__":
     alignStr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
     root.geometry(alignStr)
 
-    # select communication label
-    GLabel_421 = tk.Label(root)
-    GLabel_421["bg"] = "#ffffff"
-    ft = tkFont.Font(family='Times', size=10)
-    GLabel_421["font"] = ft
-    GLabel_421["fg"] = "#434343"
-    GLabel_421["justify"] = "center"
-    GLabel_421["text"] = "Select Communication"
-    GLabel_421.place(x=40, y=40, width=128, height=30)
-
-    # select com port label
-    GLabel_871 = tk.Label(root)
-    GLabel_871["anchor"] = "center"
-    GLabel_871["bg"] = "#ffffff"
-    ft = tkFont.Font(family='Times', size=10)
-    GLabel_871["font"] = ft
-    GLabel_871["fg"] = "#333333"
-    GLabel_871["justify"] = "center"
-    GLabel_871["text"] = "Select COM Port"
-    GLabel_871.place(x=40, y=80, width=99, height=30)
-
-    # select baud rate label
-    GLabel_791 = tk.Label(root)
-    GLabel_791["bg"] = "#ffffff"
-    ft = tkFont.Font(family='Times', size=10)
-    GLabel_791["font"] = ft
-    GLabel_791["fg"] = "#333333"
-    GLabel_791["justify"] = "center"
-    GLabel_791["text"] = "Select Method"
-    GLabel_791.place(x=210, y=80, width=109, height=30)
-
-    # ok button for com port and baud rate selection
+    # Start communication button
     GButton_295 = tk.Button(root)
     GButton_295["bg"] = "#f0f0f0"
     ft = tkFont.Font(family='Times', size=10)
@@ -186,49 +191,70 @@ if __name__ == "__main__":
     GButton_295["fg"] = "#000000"
     GButton_295["justify"] = "center"
     GButton_295["text"] = "Start Communication"
-    GButton_295.place(x=390, y=80, width=150, height=60)
+    GButton_295.place(x=40, y=40, width=120, height=40)
     GButton_295["command"] = GButton_295_command
 
-    # list box for selecting the port
-    GListBox_108 = tk.Listbox(root)
-    GListBox_108["borderwidth"] = "1px"
+    # port label
+    GLabel_485 = tk.Label(root)
+    GLabel_485["bg"] = "#ffffff"
     ft = tkFont.Font(family='Times', size=10)
-    GListBox_108["font"] = ft
-    GListBox_108["fg"] = "#333333"
-    GListBox_108["justify"] = "center"
-    GListBox_108.place(x=40, y=120, width=79, height=102)
+    GLabel_485["font"] = ft
+    GLabel_485["fg"] = "#333333"
+    GLabel_485["justify"] = "left"
+    GLabel_485["text"] = ""
+    GLabel_485.place(x=200, y=40, width=120, height=40)
 
-    # list box for selecting the baud rate
+    # baud rate label
+    GLabel_486 = tk.Label(root)
+    GLabel_486["bg"] = "#ffffff"
+    ft = tkFont.Font(family='Times', size=10)
+    GLabel_486["font"] = ft
+    GLabel_486["fg"] = "#333333"
+    GLabel_486["justify"] = "left"
+    GLabel_486["text"] = ""
+    GLabel_486.place(x=360, y=40, width=120, height=40)
+
+    # data
+    GLabel_791 = tk.Label(root)
+    GLabel_791["bg"] = "#ffffff"
+    ft = tkFont.Font(family='Times', size=10)
+    GLabel_791["font"] = ft
+    GLabel_791["fg"] = "#333333"
+    GLabel_791["justify"] = "center"
+    GLabel_791["text"] = "Load Data From?"
+    GLabel_791.place(x=40, y=100, width=120, height=40)
+
     GListBox_600 = tk.Listbox(root)
     GListBox_600["borderwidth"] = "1px"
     ft = tkFont.Font(family='Times', size=10)
     GListBox_600["font"] = ft
     GListBox_600["fg"] = "#333333"
-    GListBox_600["justify"] = "center"
-    GListBox_600.place(x=210, y=120, width=77, height=99)
-    baud_rate_list = Data_Collection_Method()
-    for baudRate in baud_rate_list:
-        GListBox_600.insert(tk.END, baudRate)
+    GListBox_600["justify"] = "left"
+    GListBox_600.place(x=40, y=160, width=100, height=100)
+    # data_collect_method_list = Data_Collection_Method()
+    # for dataMethod in data_collect_method_list:
+    #     GListBox_600.insert(tk.END, dataMethod)
 
-    # select machine label
-    GLabel_454 = tk.Label(root)
-    GLabel_454["bg"] = "#ffffff"
+    # ML model
+    GLabel_792 = tk.Label(root)
+    GLabel_792["bg"] = "#ffffff"
     ft = tkFont.Font(family='Times', size=10)
-    GLabel_454["font"] = ft
-    GLabel_454["fg"] = "#333333"
-    GLabel_454["justify"] = "center"
-    GLabel_454["text"] = "Select Machine"
-    GLabel_454.place(x=40, y=280, width=90, height=31)
+    GLabel_792["font"] = ft
+    GLabel_792["fg"] = "#333333"
+    GLabel_792["justify"] = "center"
+    GLabel_792["text"] = "Load ML model from?"
+    GLabel_792.place(x=200, y=100, width=120, height=40)
 
-    # select the machine label
-    GLabel_150 = tk.Label(root)
-    GLabel_150["bg"] = "#ffffff"
+    GListBox_601 = tk.Listbox(root)
+    GListBox_601["borderwidth"] = "1px"
     ft = tkFont.Font(family='Times', size=10)
-    GLabel_150["font"] = ft
-    GLabel_150["fg"] = "#333333"
-    GLabel_150["justify"] = "center"
-    GLabel_150["text"] = "Select The  Machine"
-    GLabel_150.place(x=40, y=320, width=124, height=38)
+    GListBox_601["font"] = ft
+    GListBox_601["fg"] = "#333333"
+    GListBox_601["justify"] = "left"
+    GListBox_601.place(x=200, y=160, width=100, height=100)
+    # data_collect_method_list = Data_Collection_Method()
+    # for dataMethod in data_collect_method_list:
+    #     GListBox_601.insert(tk.END, dataMethod)
 
     # train button
     GButton_910 = tk.Button(root)
@@ -238,7 +264,7 @@ if __name__ == "__main__":
     GButton_910["fg"] = "#000000"
     GButton_910["justify"] = "center"
     GButton_910["text"] = "TRAIN"
-    GButton_910.place(x=390, y=320, width=70, height=30)
+    GButton_910.place(x=40, y=340, width=120, height=40)
     GButton_910["command"] = GButton_910_command
 
     # visualize button
@@ -249,7 +275,7 @@ if __name__ == "__main__":
     GButton_536["fg"] = "#000000"
     GButton_536["justify"] = "center"
     GButton_536["text"] = "VISUALIZE"
-    GButton_536.place(x=470, y=320, width=80, height=30)
+    GButton_536.place(x=40, y=400, width=120, height=40)
     GButton_536["command"] = GButton_536_command
 
     # visualize button
@@ -260,70 +286,28 @@ if __name__ == "__main__":
     GButton_537["fg"] = "#000000"
     GButton_537["justify"] = "center"
     GButton_537["text"] = "COLLECT DATA"
-    GButton_537.place(x=600, y=320, width=120, height=30)
+    GButton_537.place(x=360, y=280, width=120, height=40)
     GButton_537["command"] = GButton_537_command
 
-    # list box for selecting the machine
-    GListBox_969 = tk.Listbox(root)
-    GListBox_969["borderwidth"] = "1px"
-    ft = tkFont.Font(family='Times', size=10)
-    GListBox_969["font"] = ft
-    GListBox_969["fg"] = "#333333"
-    GListBox_969["justify"] = "center"
-    GListBox_969.place(x=40, y=370, width=79, height=111)
-    machine_list = Machine_List()
-    for machine in machine_list:
-        GListBox_969.insert(tk.END, machine)
-
-    # add new machine label
-    GLabel_540 = tk.Label(root)
-    GLabel_540["bg"] = "#ffffff"
-    ft = tkFont.Font(family='Times', size=10)
-    GLabel_540["font"] = ft
-    GLabel_540["fg"] = "#333333"
-    GLabel_540["justify"] = "center"
-    GLabel_540["text"] = "Add New Machine"
-    GLabel_540.place(x=210, y=320, width=118, height=40)
-
-    # enter new machine name
+    # get collect data size
     GLineEdit_334 = tk.Entry(root)
     GLineEdit_334["borderwidth"] = "1px"
     ft = tkFont.Font(family='Times', size=10)
     GLineEdit_334["font"] = ft
     GLineEdit_334["fg"] = "#333333"
     GLineEdit_334["justify"] = "center"
-    GLineEdit_334["text"] = "Enter Name Here"
-    GLineEdit_334.place(x=210, y=370, width=116, height=30)
+    GLineEdit_334.insert(0, "choose (KB) Default: 1KB")
+    GLineEdit_334.place(x=40, y=280, width=120, height=40)
 
-    # ok button for adding new machine
-    GButton_638 = tk.Button(root)
-    GButton_638["bg"] = "#f0f0f0"
+    # get collect data time
+    GLineEdit_335 = tk.Entry(root)
+    GLineEdit_335["borderwidth"] = "1px"
     ft = tkFont.Font(family='Times', size=10)
-    GButton_638["font"] = ft
-    GButton_638["fg"] = "#000000"
-    GButton_638["justify"] = "center"
-    GButton_638["text"] = "OK"
-    GButton_638.place(x=210, y=410, width=62, height=30)
-    GButton_638["command"] = GButton_638_command
-
-    GButton_450 = tk.Button(root)
-    GButton_450["bg"] = "#f0f0f0"
-    ft = tkFont.Font(family='Times', size=10)
-    GButton_450["font"] = ft
-    GButton_450["fg"] = "#000000"
-    GButton_450["justify"] = "center"
-    GButton_450["text"] = "Delete"
-    GButton_450.place(x=210, y=500, width=62, height=30)
-    GButton_450["command"] = GButton_450_command
-
-    GLabel_445 = tk.Label(root)
-    GLabel_445["bg"] = "#ffffff"
-    ft = tkFont.Font(family='Times', size=10)
-    GLabel_445["font"] = ft
-    GLabel_445["fg"] = "#333333"
-    GLabel_445["justify"] = "center"
-    GLabel_445["text"] = "Delete Machine"
-    GLabel_445.place(x=210, y=450, width=101, height=44)
+    GLineEdit_335["font"] = ft
+    GLineEdit_335["fg"] = "#333333"
+    GLineEdit_335["justify"] = "center"
+    GLineEdit_335.insert(0, "choose (min) Default: 10min")
+    GLineEdit_335.place(x=200, y=280, width=120, height=40)
 
     GLabel_489 = tk.Label(root)
     GLabel_489["bg"] = "#ffffff"

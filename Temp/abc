@@ -1,0 +1,107 @@
+# # select communication label
+    # GLabel_421 = tk.Label(root)
+    # GLabel_421["bg"] = "#ffffff"
+    # ft = tkFont.Font(family='Times', size=10)
+    # GLabel_421["font"] = ft
+    # GLabel_421["fg"] = "#434343"
+    # GLabel_421["justify"] = "center"
+    # GLabel_421["text"] = "Select Communication"
+    # GLabel_421.place(x=40, y=40, width=128, height=30)
+
+    # # select com port label
+    # GLabel_871 = tk.Label(root)
+    # GLabel_871["anchor"] = "center"
+    # GLabel_871["bg"] = "#ffffff"
+    # ft = tkFont.Font(family='Times', size=10)
+    # GLabel_871["font"] = ft
+    # GLabel_871["fg"] = "#333333"
+    # GLabel_871["justify"] = "center"
+    # GLabel_871["text"] = "Select COM Port"
+    # GLabel_871.place(x=40, y=80, width=99, height=30)
+
+    # select baud rate label
+
+    # # list box for selecting the port
+    # GListBox_108 = tk.Listbox(root)
+    # GListBox_108["borderwidth"] = "1px"
+    # ft = tkFont.Font(family='Times', size=10)
+    # GListBox_108["font"] = ft
+    # GListBox_108["fg"] = "#333333"
+    # GListBox_108["justify"] = "center"
+    # GListBox_108.place(x=40, y=120, width=79, height=102)
+
+    # list box for selecting the where to get the data set
+
+    # select machine label
+    # GLabel_454 = tk.Label(root)
+    # GLabel_454["bg"] = "#ffffff"
+    # ft = tkFont.Font(family='Times', size=10)
+    # GLabel_454["font"] = ft
+    # GLabel_454["fg"] = "#333333"
+    # GLabel_454["justify"] = "center"
+    # GLabel_454["text"] = "Select Machine"
+    # GLabel_454.place(x=40, y=280, width=90, height=31)
+    #
+    # # select the machine label
+    # GLabel_150 = tk.Label(root)
+    # GLabel_150["bg"] = "#ffffff"
+    # ft = tkFont.Font(family='Times', size=10)
+    # GLabel_150["font"] = ft
+    # GLabel_150["fg"] = "#333333"
+    # GLabel_150["justify"] = "center"
+    # GLabel_150["text"] = "Select The  Machine"
+    # GLabel_150.place(x=40, y=320, width=124, height=38)
+
+
+    # list box for selecting the machine
+    # GListBox_969 = tk.Listbox(root)
+    # GListBox_969["borderwidth"] = "1px"
+    # ft = tkFont.Font(family='Times', size=10)
+    # GListBox_969["font"] = ft
+    # GListBox_969["fg"] = "#333333"
+    # GListBox_969["justify"] = "center"
+    # GListBox_969.place(x=40, y=370, width=79, height=111)
+    # machine_list = Machine_List()
+    # for machine in machine_list:
+    #     GListBox_969.insert(tk.END, machine)
+
+    # add new machine label
+    # GLabel_540 = tk.Label(root)
+    # GLabel_540["bg"] = "#ffffff"
+    # ft = tkFont.Font(family='Times', size=10)
+    # GLabel_540["font"] = ft
+    # GLabel_540["fg"] = "#333333"
+    # GLabel_540["justify"] = "center"
+    # GLabel_540["text"] = "Add New Machine"
+    # GLabel_540.place(x=210, y=320, width=118, height=40)
+
+# ok button for adding new machine
+    # GButton_638 = tk.Button(root)
+    # GButton_638["bg"] = "#f0f0f0"
+    # ft = tkFont.Font(family='Times', size=10)
+    # GButton_638["font"] = ft
+    # GButton_638["fg"] = "#000000"
+    # GButton_638["justify"] = "center"
+    # GButton_638["text"] = "OK"
+    # GButton_638.place(x=210, y=410, width=62, height=30)
+    # GButton_638["command"] = GButton_638_command
+
+    # delete machine label
+    # GButton_450 = tk.Button(root)
+    # GButton_450["bg"] = "#f0f0f0"
+    # ft = tkFont.Font(family='Times', size=10)
+    # GButton_450["font"] = ft
+    # GButton_450["fg"] = "#000000"
+    # GButton_450["justify"] = "center"
+    # GButton_450["text"] = "Delete"
+    # GButton_450.place(x=210, y=500, width=62, height=30)
+    # GButton_450["command"] = GButton_450_command
+
+    # GLabel_445 = tk.Label(root)
+    # GLabel_445["bg"] = "#ffffff"
+    # ft = tkFont.Font(family='Times', size=10)
+    # GLabel_445["font"] = ft
+    # GLabel_445["fg"] = "#333333"
+    # GLabel_445["justify"] = "center"
+    # GLabel_445["text"] = "Delete Machine"
+    # GLabel_445.place(x=210, y=450, width=101, height=44)

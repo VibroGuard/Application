@@ -1,33 +1,68 @@
 import tkinter as tk
-from tkinter import messagebox, ttk
 
+class SampleApp(tk.Tk):
+    def __init__(self, *args, **kwargs):
+        tk.Tk.__init__(self, *args, **kwargs)
+        self.geometry("800x600")
+        self.title("Page Navigation")
 
-def show_progress_bar():
-    # Create a custom message box
-    progress_box = tk.Toplevel()
-    progress_box.title("Progress")
+        # Container to hold all pages
+        container = tk.Frame(self)
+        container.pack(side="top", fill="both", expand=True)
 
-    # Add a label
-    label = tk.Label(progress_box, text="Loading...")
-    label.pack(pady=10)
+        # Dictionary to hold frames of all pages
+        self.frames = {}
 
-    # Add a progress bar
-    progress_bar = ttk.Progressbar(progress_box, length=200, mode='indeterminate')
-    progress_bar.pack(pady=10)
+        # Define all pages
+        for PageClass in (Page1, Page2, Page3, Page4):
+            page_name = PageClass.__name__
+            frame = PageClass(parent=container, controller=self)
+            self.frames[page_name] = frame
+            frame.grid(row=0, column=0, sticky="nsew")
 
-    # Start the progress bar
-    progress_bar.start(10)  # Adjust the speed of the progress bar
+        # Show the first page by default
+        self.show_frame("Page1")
 
-    # Close the progress box after some time (e.g., 5 seconds)
-    progress_box.after(5000, progress_box.destroy)
+        # Navigation bar
+        nav_frame = tk.Frame(self)
+        nav_frame.pack(anchor="nw", padx=10, pady=10)
 
+        for page_name in self.frames:
+            button = tk.Button(nav_frame, text=page_name, command=lambda name=page_name: self.show_frame(name))
+            button.pack(side="left", padx=5)
 
-# Create a Tkinter window
-root = tk.Tk()
-root.geometry("300x200")
+    def show_frame(self, page_name):
+        frame = self.frames[page_name]
+        frame.tkraise()
 
-# Button to show the progress bar
-btn = tk.Button(root, text="Show Progress", command=show_progress_bar)
-btn.pack(pady=20)
+class Page1(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        label = tk.Label(self, text="Page 1")
+        label.pack(side="top", fill="x", pady=10)
 
-root.mainloop()
+class Page2(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        label = tk.Label(self, text="Page 2")
+        label.pack(side="top", fill="x", pady=10)
+
+class Page3(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        label = tk.Label(self, text="Page 3")
+        label.pack(side="top", fill="x", pady=10)
+
+class Page4(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        label = tk.Label(self, text="Page 4")
+        label.pack(side="top", fill="x", pady=10)
+
+if __name__ == "__main__":
+    app = SampleApp()
+    app.mainloop()

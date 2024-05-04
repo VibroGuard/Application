@@ -55,3 +55,38 @@ def visualize_data(x, y, z, sps, plot_type, fig, axs):
     fig.canvas.flush_events()
 
     # plt.show()
+
+
+def visualize_data_time_only(x, y, z, sps, fig, axs):
+    names = ["x - axis", "y - axis", "z - axis"]
+    data_all = [x, y, z]
+    time = len(x) / sps  # time = number of samples / samples per second
+    horizontal_axis = np.linspace(0, time, len(x))
+
+    for i, ax in enumerate(axs):
+        ax.clear()
+        data = data_all[i]
+        ax.plot(horizontal_axis, data)
+
+        ax.set_title(names[i])
+
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel('Magnitude')
+
+    plt.tight_layout()
+
+    plt.pause(0.01)
+    fig.canvas.flush_events()
+
+def visualize_anomalies(x, y, z, x_in, y_in, z_in, sps, fig, axs):
+    data_all = [np.array(x)[x_in], np.array(y)[y_in], np.array(z)[z_in]]
+    indices_all = [x_in / sps, y_in / sps, z_in / sps]
+    for i, ax in enumerate(axs):
+        data = data_all[i]
+        indices = indices_all[i]
+        ax.scatter(indices, data, c="r")
+
+    plt.tight_layout()
+
+    plt.pause(0.01)
+    fig.canvas.flush_events()

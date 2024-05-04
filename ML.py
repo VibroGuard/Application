@@ -38,8 +38,8 @@ def to_sequences(x, y, seq_size=1):
     y_values = []
 
     for i in range(x.size - seq_size):
-        x_values.append(x[i:(i+seq_size)])
-        y_values.append(y[i+seq_size])
+        x_values.append(x[i:(i + seq_size)])
+        y_values.append(y[i + seq_size])
 
     return np.array(x_values), np.array(y_values)
 
@@ -48,7 +48,7 @@ def get_model(trainX):
     model = Sequential()
     model.add(LSTM(128, activation='relu', input_shape=(trainX.shape[1], trainX.shape[2]), return_sequences=True))
     model.add(LSTM(64, activation='relu', return_sequences=False))
-    model.add((trainX.shape[1]))
+    model.add(RepeatVector(trainX.shape[1]))
     model.add(LSTM(64, activation='relu', return_sequences=True))
     model.add(LSTM(128, activation='relu', return_sequences=True))
     model.add(TimeDistributed(Dense(trainX.shape[2])))
@@ -67,6 +67,13 @@ def get_max_MAE(model, trainX):
     return max_trainMAE
 
 
+def get_mae(model, xdata):
+    predicted = model.predict(xdata)
+    mae = np.mean(np.abs(predicted - xdata), axis=1)
+
+    return mae
+
+
 def model(data_buffer):
     seq_size = 30
 
@@ -82,9 +89,30 @@ def model(data_buffer):
     # print("Model acquired.")
 
     model.fit(trainX, trainY, epochs=10, batch_size=32, validation_split=0.1, verbose=1)
-    print("Fitting done.")
 
-    return model
+    max_MAE = get_max_MAE(model, trainX)
+
+    print("Training done.")
+
+    return model, max_MAE, scaler
+    # return model, max_MAE, None
 
 
+def predict(model, max_mae, scaler, xdata):
+    seq_size = 30
 
+    # print("Before scaling: ", xdata.shape)
+    xdata = scale(xdata, scaler)
+    # print("After scaling: ", xdata.shape)
+    # print("Start splitting to sequences.")
+    xdata, ydata = to_sequences(xdata, xdata, seq_size)
+    # print("Done splitting: ")
+    # print("Sequenced: ", xdata.shape)
+    mae = get_mae(model, xdata)
+    # print("MAE acquired.")
+    anomaly_indices = np.asarray(mae > max_mae).nonzero()[0]
+
+    print("Anomaly indices found.")
+    # print(anomaly_indices)
+
+    return anomaly_indices

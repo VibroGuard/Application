@@ -37,5 +37,19 @@ def get_serial_port(port=None, baudrate=115200):
     return ser
 
 
-port_ = find_arduino()
-ser_ = get_serial_port(port_, 115200)
+# port_ = find_arduino()
+# ser_ = get_serial_port(port_, 115200)
+#
+# print("Port: ", port_)
+# print("Serial port: ", ser_)
+
+def ComOK():
+    port_ = find_arduino()
+    ser_ = get_serial_port(port_, 115200)
+
+    if ser_ is not None:
+        return [ser_, ser_.isOpen(), ser_.port, ser_.baudrate]
+    else:
+        return [ser_, False, "ComPort?", "Baudrate?"]
+
+# print(ComOK())
