@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 import tkinter.font as tkFont
 from tkinter import messagebox
@@ -7,6 +8,8 @@ from datetime import datetime
 from multiprocessing import Pool
 from Graphs import *
 from ML import model, predict
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 datasize_Main = 256
 
@@ -58,11 +61,11 @@ def Select_COM_Port_Page():
         if ok:
             portLabel.config(text=port)
             baudRateLabel.config(text=baudRate)
-            show_message("Information", f"Port - {port} with baud rate - {baudRate} is ready")
+            show_message("Information", f"Port - {port} with baud rate - {baudRate} is ready.")
         else:
             portLabel.config(text=port)
             baudRateLabel.config(text=baudRate)
-            show_message("Error", "No port found")
+            show_message("Error", "No port found.")
 
     Select_COM_Port_Frame = tk.Frame(main_frame)
 
@@ -253,29 +256,59 @@ def Train_ML_Model_Page():
 
 def Visualize_Data_Page():
     Visualize_Data_Frame = tk.Frame(main_frame)
+    serObj = ComOK()[0]
+    print("Ser object, ", serObj, serObj.isOpen())
+
+    def on_close(event):
+        print("Event: ", event)
+        serObj.close()
+
 
     def Just_Visualize_Data():
-        serObj = ComOK()[0]
         if serObj is None:
             show_message("Error", "Cannot collect data!\nPlug the Device!\nStart Communication First!")
         else:
+            if not serObj.isOpen():
+                print("Opening ser port since it is closed.")
+                serObj.open()
+
             fig, axs = plt.subplots(1, 3, figsize=(5, 5))
+            fig.canvas.mpl_connect('close_event', on_close)
 
             x_data = [0.0] * datasize_Main
             y_data = [0.0] * datasize_Main
             z_data = [0.0] * datasize_Main
 
             while True:
-                received_data = str(serObj.readline())[2:-5].casefold()
+                print("In while True loop...")
+                if not serObj.isOpen():
+                    print("Breaking while loop...")
+                    break
+                else:
+                    print("Continuing...")
+
+                # Might be helpful to use a separate thread to run the while loop,
+                # which will automatically terminate after the main program stops.
+                print("Before receiving data")
+                # received_data = str(serObj.readline())[2:-5].casefold()
+                received_data = str(serObj.readline())
                 print(received_data)
 
-                if received_data == "x":
+                # if received_data == "x":
+                #     x_data = fill_buffer(datasize_Main, serObj)
+                #     continue
+                # elif received_data == "y":
+                #     y_data = fill_buffer(datasize_Main, serObj)
+                #     continue
+                # elif received_data == "z":
+                #     z_data = fill_buffer(datasize_Main, serObj)
+                if "x" in received_data:
                     x_data = fill_buffer(datasize_Main, serObj)
                     continue
-                elif received_data == "y":
+                elif "y" in received_data:
                     y_data = fill_buffer(datasize_Main, serObj)
                     continue
-                elif received_data == "z":
+                elif "z" in received_data:
                     z_data = fill_buffer(datasize_Main, serObj)
                 else:
                     continue
@@ -283,7 +316,7 @@ def Visualize_Data_Page():
 
         # plot functions
         # check for model file existence
-        show_message("Information", "Just Visualize")
+        # show_message("Information", "Just Visualize")
 
     def Visualize_Data_With_ML_Model():
         serObj = ComOK()[0]

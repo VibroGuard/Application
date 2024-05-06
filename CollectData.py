@@ -12,7 +12,7 @@ def fill_buffer(num_samples, ser):
             value = float(ser.readline())
         except:
             value = 0.0
-        print("value: ", value)
+        # print("value: ", value)
 
         temp_buffer.append(value)
         i += 1

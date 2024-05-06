@@ -7,7 +7,8 @@ def find_arduino(port=None):
     if port is None:
         ports = serial.tools.list_ports.comports()
         for p in ports:
-            if p.manufacturer is not None and "Microsoft" in p.manufacturer:
+            # print(p.manufacturer)
+            if p.manufacturer is not None and ("Arduino" in p.manufacturer or "FTDI" in p.manufacturer):
                 port = p.device
     return port
 
@@ -22,10 +23,12 @@ def get_serial_port(port=None, baudrate=115200):
         ser = serial.Serial()
         ser.baudrate = baudrate
         ser.port = port
+
         try:
-            ser.open()
+            if not ser.is_open:
+                ser.open()
             if ser.is_open:
-                # print("Serial port: " + port + " is opened.")
+                print("Serial port: " + port + " is opened.")
                 return ser
             else:
                 # print("Serial port: " + port + " cannot be opened.")
@@ -34,7 +37,7 @@ def get_serial_port(port=None, baudrate=115200):
             # print("Serial port: " + port + " cannot be opened.")
             # print(e)
             return None
-    return ser
+    return None
 
 
 # port_ = find_arduino()
