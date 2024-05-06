@@ -44,9 +44,9 @@ def collect_dataset(samples_amount, time_amount, num_samples, ser):
         print(time.time() - start_time)
         print(samples)
 
-        received_data = str(ser.readline())[2:-5].casefold()
+        received_data = str(ser.readline())
 
-        if received_data == "x":
+        if "x" in received_data:
             x_data = fill_buffer(num_samples, ser)
             x_data_buffer.extend(x_data)
             with open("x_data.txt", "at") as x_data_file:
@@ -56,14 +56,14 @@ def collect_dataset(samples_amount, time_amount, num_samples, ser):
 
             # Increment the samples count.
             samples += num_samples
-        elif received_data == "y" and samples != 0:
+        elif "y" in received_data and samples != 0:
             y_data = fill_buffer(num_samples, ser)
             y_data_buffer.extend(y_data)
             with open("y_data.txt", "at") as y_data_file:
                 for y in y_data:
                     y_data_file.write(str(y))
                     y_data_file.write(" ")
-        elif received_data == "z" and samples != 0:
+        elif "z" in received_data and samples != 0:
             z_data = fill_buffer(num_samples, ser)
             z_data_buffer.extend(z_data)
             with open("z_data.txt", "at") as z_data_file:

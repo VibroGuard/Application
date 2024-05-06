@@ -2,12 +2,16 @@ import os
 import tkinter as tk
 import tkinter.font as tkFont
 from tkinter import messagebox
+
+import joblib
+
 from Communication import ComOK
 from CollectData import collect_dataset, fill_buffer
 from datetime import datetime
 from multiprocessing import Pool
 from Graphs import *
 from ML import model, predict
+from keras.models import load_model
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
@@ -201,20 +205,46 @@ def Train_ML_Model_Page():
         if serObj is None:
             show_message("Error", "Cannot collect data!\nPlug the Device!\nStart Communication First!")
         else:
+            if not serObj.isOpen():
+                print("Opening ser port since it is closed.")
+                serObj.open()
+
             YN = messagebox.askquestion("Question",
-                                        f"Data collection started with \n{defaultNumberOfSamples} samples and {defaultDataTime} seconds\nproceed?")
+                                        f"Data collection started with \n{defaultNumberOfSamples} samples and {defaultDataTime} seconds.\nProceed?")
             if YN == "yes":
-                dataSet = collect_dataset(defaultNumberOfSamples, defaultDataTime, datasize_Main, serObj)
+                # dataSet = collect_dataset(defaultNumberOfSamples, defaultDataTime, datasize_Main, serObj)
+
+                # TEMPORARILY - To reduce time while debugging
+                dataSet = collect_dataset(1000, defaultDataTime, datasize_Main, serObj)
+
                 # store data in the file - Done in Collect_dataset function
                 # train from stored data
                 with Pool() as pool:
                     trained_models = pool.map(model, (dataSet[0], dataSet[1], dataSet[2]))
-                # store model
 
-                show_message("Information", "Model train from new data")
+                # Store trained models
+                trained_models[0][0].save("x_model.keras")
+                trained_models[1][0].save("y_model.keras")
+                trained_models[2][0].save("z_model.keras")
+
+                # Storing fitted scalers
+                joblib.dump(trained_models[0][2], "x_scaler.save")
+                joblib.dump(trained_models[1][2], "y_scaler.save")
+                joblib.dump(trained_models[2][2], "z_scaler.save")
+
+                # Storing max_MAE values
+                with open("x_maxMAE.txt", "wt") as x_maxMAE:
+                    x_maxMAE.write(str(trained_models[0][1]))
+                with open("y_maxMAE.txt", "wt") as y_maxMAE:
+                    y_maxMAE.write(str(trained_models[1][1]))
+                with open("z_maxMAE.txt", "wt") as z_maxMAE:
+                    z_maxMAE.write(str(trained_models[2][1]))
+
+                show_message("Information", "Model trained from new data.")
             else:
                 show_message("Information",
-                             "Data collection cancelled\nGo to Collect Data Page to set parameters\nCollect data on that page\nCome here\nTrain With Existing Data")
+                             "Data collection cancelled.\nGo to Collect Data page to set parameters.\n"
+                             "Collect data on that page.\nCome here.\nClick on Train With Existing Data.")
 
     def Train_ML_Existing_Data():
         global trained_models
@@ -228,8 +258,26 @@ def Train_ML_Model_Page():
             # with Pool() as pool:
             #     trained_models = pool.map(model, (dataSet[0], dataSet[1], dataSet[2]))
             pass
-        # store model
-        show_message("Information", "Model train from existing data")
+
+        # Store trained models
+        trained_models[0][0].save("x_model.keras")
+        trained_models[1][0].save("y_model.keras")
+        trained_models[2][0].save("z_model.keras")
+
+        # Storing fitted scalers
+        joblib.dump(trained_models[0][2], "x_scaler.save")
+        joblib.dump(trained_models[1][2], "y_scaler.save")
+        joblib.dump(trained_models[2][2], "z_scaler.save")
+
+        # Storing max_MAE values
+        with open("x_maxMAE.txt", "wt") as x_maxMAE:
+            x_maxMAE.write(str(trained_models[0][1]))
+        with open("y_maxMAE.txt", "wt") as y_maxMAE:
+            y_maxMAE.write(str(trained_models[1][1]))
+        with open("z_maxMAE.txt", "wt") as z_maxMAE:
+            z_maxMAE.write(str(trained_models[2][1]))
+
+        show_message("Information", "Model trained from existing data.")
 
     trainFromNewData = tk.Button(main_frame)
     trainFromNewData["bg"] = "#f0f0f0"
