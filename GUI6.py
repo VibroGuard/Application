@@ -1,12 +1,21 @@
+import os
 import tkinter as tk
 import tkinter.font as tkFont
 from tkinter import messagebox
+
+import joblib
+
 from Communication import ComOK
 from CollectData import collect_dataset, fill_buffer
 from datetime import datetime
 from multiprocessing import Pool
 from Graphs import *
 from ML import model, predict
+from keras.models import load_model
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+
+trained_models = None
 
 datasize_Main = 256
 
@@ -58,11 +67,11 @@ def Select_COM_Port_Page():
         if ok:
             portLabel.config(text=port)
             baudRateLabel.config(text=baudRate)
-            show_message("Information", f"Port - {port} with baud rate - {baudRate} is ready")
+            show_message("Information", f"Port - {port} with baud rate - {baudRate} is ready.")
         else:
             portLabel.config(text=port)
             baudRateLabel.config(text=baudRate)
-            show_message("Error", "No port found")
+            show_message("Error", "No port found.")
 
     Select_COM_Port_Frame = tk.Frame(main_frame)
 
@@ -198,20 +207,46 @@ def Train_ML_Model_Page():
         if serObj is None:
             show_message("Error", "Cannot collect data!\nPlug the Device!\nStart Communication First!")
         else:
+            if not serObj.isOpen():
+                print("Opening ser port since it is closed.")
+                serObj.open()
+
             YN = messagebox.askquestion("Question",
-                                        f"Data collection started with \n{defaultNumberOfSamples} samples and {defaultDataTime} seconds\nproceed?")
+                                        f"Data collection started with \n{defaultNumberOfSamples} samples and {defaultDataTime} seconds.\nProceed?")
             if YN == "yes":
-                dataSet = collect_dataset(defaultNumberOfSamples, defaultDataTime, datasize_Main, serObj)
+                # dataSet = collect_dataset(defaultNumberOfSamples, defaultDataTime, datasize_Main, serObj)
+
+                # TEMPORARILY - To reduce time while debugging
+                dataSet = collect_dataset(1000, defaultDataTime, datasize_Main, serObj)
+
                 # store data in the file - Done in Collect_dataset function
                 # train from stored data
                 with Pool() as pool:
                     trained_models = pool.map(model, (dataSet[0], dataSet[1], dataSet[2]))
-                # store model
 
-                show_message("Information", "Model train from new data")
+                # Store trained models
+                trained_models[0][0].save("x_model.keras")
+                trained_models[1][0].save("y_model.keras")
+                trained_models[2][0].save("z_model.keras")
+
+                # Storing fitted scalers
+                joblib.dump(trained_models[0][2], "x_scaler.save")
+                joblib.dump(trained_models[1][2], "y_scaler.save")
+                joblib.dump(trained_models[2][2], "z_scaler.save")
+
+                # Storing max_MAE values
+                with open("x_maxMAE.txt", "wt") as x_maxMAE:
+                    x_maxMAE.write(str(trained_models[0][1]))
+                with open("y_maxMAE.txt", "wt") as y_maxMAE:
+                    y_maxMAE.write(str(trained_models[1][1]))
+                with open("z_maxMAE.txt", "wt") as z_maxMAE:
+                    z_maxMAE.write(str(trained_models[2][1]))
+
+                show_message("Information", "Model trained from new data.")
             else:
                 show_message("Information",
-                             "Data collection cancelled\nGo to Collect Data Page to set parameters\nCollect data on that page\nCome here\nTrain With Existing Data")
+                             "Data collection cancelled.\nGo to Collect Data page to set parameters.\n"
+                             "Collect data on that page.\nCome here.\nClick on Train With Existing Data.")
 
     def Train_ML_Existing_Data():
         global trained_models
@@ -225,8 +260,26 @@ def Train_ML_Model_Page():
             # with Pool() as pool:
             #     trained_models = pool.map(model, (dataSet[0], dataSet[1], dataSet[2]))
             pass
-        # store model
-        show_message("Information", "Model train from existing data")
+
+        # Store trained models
+        trained_models[0][0].save("x_model.keras")
+        trained_models[1][0].save("y_model.keras")
+        trained_models[2][0].save("z_model.keras")
+
+        # Storing fitted scalers
+        joblib.dump(trained_models[0][2], "x_scaler.save")
+        joblib.dump(trained_models[1][2], "y_scaler.save")
+        joblib.dump(trained_models[2][2], "z_scaler.save")
+
+        # Storing max_MAE values
+        with open("x_maxMAE.txt", "wt") as x_maxMAE:
+            x_maxMAE.write(str(trained_models[0][1]))
+        with open("y_maxMAE.txt", "wt") as y_maxMAE:
+            y_maxMAE.write(str(trained_models[1][1]))
+        with open("z_maxMAE.txt", "wt") as z_maxMAE:
+            z_maxMAE.write(str(trained_models[2][1]))
+
+        show_message("Information", "Model trained from existing data.")
 
     trainFromNewData = tk.Button(main_frame)
     trainFromNewData["bg"] = "#f0f0f0"
@@ -253,44 +306,85 @@ def Train_ML_Model_Page():
 
 def Visualize_Data_Page():
     Visualize_Data_Frame = tk.Frame(main_frame)
+    serObj = ComOK()[0]
+    print("Ser object, ", serObj, serObj.isOpen())
+
+    def on_close(event):
+        print("Event: ", event)
+        serObj.close()
+
 
     def Just_Visualize_Data():
-        serObj = ComOK()[0]
         if serObj is None:
             show_message("Error", "Cannot collect data!\nPlug the Device!\nStart Communication First!")
         else:
+            if not serObj.isOpen():
+                print("Opening ser port since it is closed.")
+                serObj.open()
+
             fig, axs = plt.subplots(1, 3, figsize=(5, 5))
+            fig.canvas.mpl_connect('close_event', on_close)
 
             x_data = [0.0] * datasize_Main
             y_data = [0.0] * datasize_Main
             z_data = [0.0] * datasize_Main
 
             while True:
-                received_data = str(serObj.readline())[2:-5].casefold()
+                print("In while True loop...")
+                if not serObj.isOpen():
+                    print("Breaking while loop...")
+                    break
+                else:
+                    print("Continuing...")
+
+                # Might be helpful to use a separate thread to run the while loop,
+                # which will automatically terminate after the main program stops.
+                print("Before receiving data")
+                # received_data = str(serObj.readline())[2:-5].casefold()
+                received_data = str(serObj.readline())
                 print(received_data)
 
-                if received_data == "x":
+                # if received_data == "x":
+                #     x_data = fill_buffer(datasize_Main, serObj)
+                #     continue
+                # elif received_data == "y":
+                #     y_data = fill_buffer(datasize_Main, serObj)
+                #     continue
+                # elif received_data == "z":
+                #     z_data = fill_buffer(datasize_Main, serObj)
+                if "x" in received_data:
                     x_data = fill_buffer(datasize_Main, serObj)
                     continue
-                elif received_data == "y":
+                elif "y" in received_data:
                     y_data = fill_buffer(datasize_Main, serObj)
                     continue
-                elif received_data == "z":
+                elif "z" in received_data:
                     z_data = fill_buffer(datasize_Main, serObj)
                 else:
                     continue
+
                 visualize_data_time_only(x_data, y_data, z_data, sampling_frequency, fig, axs)
 
         # plot functions
         # check for model file existence
-        show_message("Information", "Just Visualize")
+        # show_message("Information", "Just Visualize")
 
     def Visualize_Data_With_ML_Model():
-        serObj = ComOK()[0]
+        global trained_models
+        # Check whether trained models are available
+        if trained_models is None:
+            show_message("Error", "You don't have a trained model.\nTrain ML models first.")
+            return
+
         if serObj is None:
             show_message("Error", "Cannot collect data!\nPlug the Device!\nStart Communication First!")
         else:
+            if not serObj.isOpen():
+                print("Opening ser port since it is closed.")
+                serObj.open()
+
             fig, axs = plt.subplots(1, 3, figsize=(5, 5))
+            fig.canvas.mpl_connect('close_event', on_close)
 
             anomaly_indices = []
             x_data = [0.0] * datasize_Main
@@ -298,16 +392,20 @@ def Visualize_Data_Page():
             z_data = [0.0] * datasize_Main
 
             while True:
-                received_data = str(serObj.readline())[2:-5].casefold()
+                if not serObj.isOpen():
+                    print("Breaking while loop...")
+                    break
+
+                received_data = str(serObj.readline())
                 print(received_data)
 
-                if received_data == "x":
+                if "x" in received_data:
                     x_data = fill_buffer(datasize_Main, serObj)
                     continue
-                elif received_data == "y":
+                elif "y" in received_data:
                     y_data = fill_buffer(datasize_Main, serObj)
                     continue
-                elif received_data == "z":
+                elif "z" in received_data:
                     z_data = fill_buffer(datasize_Main, serObj)
 
                     print("Getting predictions...")
@@ -324,14 +422,14 @@ def Visualize_Data_Page():
 
                 visualize_data_time_only(x_data, y_data, z_data, sampling_frequency, fig, axs)
 
-                print(x_data)
-                print(y_data)
-                print(z_data)
-
-                print("Anomaly indices...")
-                print(anomaly_indices[0])
-                print(anomaly_indices[1])
-                print(anomaly_indices[2])
+                # print(x_data)
+                # print(y_data)
+                # print(z_data)
+                #
+                # print("Anomaly indices...")
+                # print(anomaly_indices[0])
+                # print(anomaly_indices[1])
+                # print(anomaly_indices[2])
 
                 visualize_anomalies(x_data, y_data, z_data, anomaly_indices[0], anomaly_indices[1], anomaly_indices[2],
                                     sampling_frequency, fig, axs)
