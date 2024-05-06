@@ -15,6 +15,8 @@ from keras.models import load_model
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
+trained_models = None
+
 datasize_Main = 256
 
 defaultNumberOfSamples = 20000
@@ -360,6 +362,7 @@ def Visualize_Data_Page():
                     z_data = fill_buffer(datasize_Main, serObj)
                 else:
                     continue
+
                 visualize_data_time_only(x_data, y_data, z_data, sampling_frequency, fig, axs)
 
         # plot functions
@@ -367,11 +370,21 @@ def Visualize_Data_Page():
         # show_message("Information", "Just Visualize")
 
     def Visualize_Data_With_ML_Model():
-        serObj = ComOK()[0]
+        global trained_models
+        # Check whether trained models are available
+        if trained_models is None:
+            show_message("Error", "You don't have a trained model.\nTrain ML models first.")
+            return
+
         if serObj is None:
             show_message("Error", "Cannot collect data!\nPlug the Device!\nStart Communication First!")
         else:
+            if not serObj.isOpen():
+                print("Opening ser port since it is closed.")
+                serObj.open()
+
             fig, axs = plt.subplots(1, 3, figsize=(5, 5))
+            fig.canvas.mpl_connect('close_event', on_close)
 
             anomaly_indices = []
             x_data = [0.0] * datasize_Main
@@ -379,16 +392,20 @@ def Visualize_Data_Page():
             z_data = [0.0] * datasize_Main
 
             while True:
-                received_data = str(serObj.readline())[2:-5].casefold()
+                if not serObj.isOpen():
+                    print("Breaking while loop...")
+                    break
+
+                received_data = str(serObj.readline())
                 print(received_data)
 
-                if received_data == "x":
+                if "x" in received_data:
                     x_data = fill_buffer(datasize_Main, serObj)
                     continue
-                elif received_data == "y":
+                elif "y" in received_data:
                     y_data = fill_buffer(datasize_Main, serObj)
                     continue
-                elif received_data == "z":
+                elif "z" in received_data:
                     z_data = fill_buffer(datasize_Main, serObj)
 
                     print("Getting predictions...")
@@ -405,14 +422,14 @@ def Visualize_Data_Page():
 
                 visualize_data_time_only(x_data, y_data, z_data, sampling_frequency, fig, axs)
 
-                print(x_data)
-                print(y_data)
-                print(z_data)
-
-                print("Anomaly indices...")
-                print(anomaly_indices[0])
-                print(anomaly_indices[1])
-                print(anomaly_indices[2])
+                # print(x_data)
+                # print(y_data)
+                # print(z_data)
+                #
+                # print("Anomaly indices...")
+                # print(anomaly_indices[0])
+                # print(anomaly_indices[1])
+                # print(anomaly_indices[2])
 
                 visualize_anomalies(x_data, y_data, z_data, anomaly_indices[0], anomaly_indices[1], anomaly_indices[2],
                                     sampling_frequency, fig, axs)
