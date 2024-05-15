@@ -1,4 +1,6 @@
+import numpy as np
 import os
+from pathlib import Path
 import tkinter as tk
 import tkinter.font as tkFont
 from tkinter import messagebox
@@ -225,21 +227,21 @@ def Train_ML_Model_Page():
                     trained_models = pool.map(model, (dataSet[0], dataSet[1], dataSet[2]))
 
                 # Store trained models
-                trained_models[0][0].save("x_model.keras")
-                trained_models[1][0].save("y_model.keras")
-                trained_models[2][0].save("z_model.keras")
+                trained_models[0][0].save("Models/x_model.keras")
+                trained_models[1][0].save("Models/y_model.keras")
+                trained_models[2][0].save("Models/z_model.keras")
 
                 # Storing fitted scalers
-                joblib.dump(trained_models[0][2], "x_scaler.save")
-                joblib.dump(trained_models[1][2], "y_scaler.save")
-                joblib.dump(trained_models[2][2], "z_scaler.save")
+                joblib.dump(trained_models[0][2], "Models/x_scaler.save")
+                joblib.dump(trained_models[1][2], "Models/y_scaler.save")
+                joblib.dump(trained_models[2][2], "Models/z_scaler.save")
 
                 # Storing max_MAE values
-                with open("x_maxMAE.txt", "wt") as x_maxMAE:
+                with open("Models/x_maxMAE.txt", "wt") as x_maxMAE:
                     x_maxMAE.write(str(trained_models[0][1]))
-                with open("y_maxMAE.txt", "wt") as y_maxMAE:
+                with open("Models/y_maxMAE.txt", "wt") as y_maxMAE:
                     y_maxMAE.write(str(trained_models[1][1]))
-                with open("z_maxMAE.txt", "wt") as z_maxMAE:
+                with open("Models/z_maxMAE.txt", "wt") as z_maxMAE:
                     z_maxMAE.write(str(trained_models[2][1]))
 
                 show_message("Information", "Model trained from new data.")
@@ -250,36 +252,82 @@ def Train_ML_Model_Page():
 
     def Train_ML_Existing_Data():
         global trained_models
+
         # check Files does exist
         # train
         if find_content("x_data.txt") and find_content("y_data.txt") and find_content("z_data.txt"):
-            # read 3 files
-            # x
-            # y
-            # z
-            # with Pool() as pool:
-            #     trained_models = pool.map(model, (dataSet[0], dataSet[1], dataSet[2]))
-            pass
+            dataSet = []
+            dataSet.clear()
+            with open("x_data.txt", "rt") as x_data_file:
+                # Final value is ignored since it is ''.
+                dataSet.append(np.fromiter(x_data_file.read().split(" ")[:-1], dtype=np.float_).reshape(-1, 1))
+            with open("y_data.txt", "rt") as y_data_file:
+                # Final value is ignored since it is ''.
+                dataSet.append(np.fromiter(y_data_file.read().split(" ")[:-1], dtype=np.float_).reshape(-1, 1))
+            with open("z_data.txt", "rt") as z_data_file:
+                # Final value is ignored since it is ''.
+                dataSet.append(np.fromiter(z_data_file.read().split(" ")[:-1], dtype=np.float_).reshape(-1, 1))
 
-        # Store trained models
-        trained_models[0][0].save("x_model.keras")
-        trained_models[1][0].save("y_model.keras")
-        trained_models[2][0].save("z_model.keras")
+            with Pool() as pool:
+                trained_models = pool.map(model, (dataSet[0], dataSet[1], dataSet[2]))
 
-        # Storing fitted scalers
-        joblib.dump(trained_models[0][2], "x_scaler.save")
-        joblib.dump(trained_models[1][2], "y_scaler.save")
-        joblib.dump(trained_models[2][2], "z_scaler.save")
+            # Store trained models
+            trained_models[0][0].save("Models/x_model.keras")
+            trained_models[1][0].save("Models/y_model.keras")
+            trained_models[2][0].save("Models/z_model.keras")
 
-        # Storing max_MAE values
-        with open("x_maxMAE.txt", "wt") as x_maxMAE:
-            x_maxMAE.write(str(trained_models[0][1]))
-        with open("y_maxMAE.txt", "wt") as y_maxMAE:
-            y_maxMAE.write(str(trained_models[1][1]))
-        with open("z_maxMAE.txt", "wt") as z_maxMAE:
-            z_maxMAE.write(str(trained_models[2][1]))
+            # Storing fitted scalers
+            joblib.dump(trained_models[0][2], "Models/x_scaler.save")
+            joblib.dump(trained_models[1][2], "Models/y_scaler.save")
+            joblib.dump(trained_models[2][2], "Models/z_scaler.save")
 
-        show_message("Information", "Model trained from existing data.")
+            # Storing max_MAE values
+            with open("Models/x_maxMAE.txt", "wt") as x_maxMAE:
+                x_maxMAE.write(str(trained_models[0][1]))
+            with open("Models/y_maxMAE.txt", "wt") as y_maxMAE:
+                y_maxMAE.write(str(trained_models[1][1]))
+            with open("Models/z_maxMAE.txt", "wt") as z_maxMAE:
+                z_maxMAE.write(str(trained_models[2][1]))
+
+            show_message("Information", "Model trained from existing data.")
+        else:
+            show_message("Error", "No files existing.\n"
+                                  "Make sure tha files are named as \"x_data.txt\" likewise.")
+
+    def Train_ML_Load_From_File():
+        global trained_models
+        # Models are expected to be in a separate folder called "Models".
+
+        temp_trained_models = []
+
+        try:
+            # Retrieving stored values
+            x_loaded_model = load_model("Models/x_model.keras")
+            x_loaded_scaler = joblib.load('Models/x_scaler.save')
+            with open("Models/x_maxMAE.txt", "rt") as x_maxMAE:
+                x_maxMAE_value = x_maxMAE.read()
+            temp_trained_models.append((x_loaded_model, x_maxMAE_value, x_loaded_scaler))
+
+            y_loaded_model = load_model("Models/y_model.keras")
+            y_loaded_scaler = joblib.load('Models/y_scaler.save')
+            with open("Models/y_maxMAE.txt", "rt") as y_maxMAE:
+                y_maxMAE_value = y_maxMAE.read()
+            temp_trained_models.append((y_loaded_model, y_maxMAE_value, y_loaded_scaler))
+
+            z_loaded_model = load_model("Models/z_model.keras")
+            z_loaded_scaler = joblib.load('Models/z_scaler.save')
+            with open("Models/z_maxMAE.txt", "rt") as z_maxMAE:
+                z_maxMAE_value = z_maxMAE.read()
+            temp_trained_models.append((z_loaded_model, z_maxMAE_value, z_loaded_scaler))
+        except:
+            show_message("Error",
+                         "Error loading files.\nCheck whether all the required files are in the \"Models\" folder.")
+            return
+
+        if len(temp_trained_models) > 0:
+            # Files present. So load them into the ML models.
+            trained_models = temp_trained_models
+            show_message("Information", "Models loaded from files successfully.")
 
     trainFromNewData = tk.Button(main_frame)
     trainFromNewData["bg"] = "#f0f0f0"
@@ -301,18 +349,31 @@ def Train_ML_Model_Page():
     trainFromExistingData.place(x=20, y=120, width=200, height=40)
     trainFromExistingData["command"] = Train_ML_Existing_Data
 
+    trainFromExistingData = tk.Button(main_frame)
+    trainFromExistingData["bg"] = "#f0f0f0"
+    ft = tkFont.Font(family='Times', size=10)
+    trainFromExistingData["font"] = ft
+    trainFromExistingData["fg"] = "#000000"
+    trainFromExistingData["justify"] = "center"
+    trainFromExistingData["text"] = "Load Saved Models"
+    trainFromExistingData.place(x=20, y=190, width=200, height=40)
+    trainFromExistingData["command"] = Train_ML_Load_From_File
+
     Train_ML_Model_Frame.pack(pady=20)
 
 
 def Visualize_Data_Page():
     Visualize_Data_Frame = tk.Frame(main_frame)
     serObj = ComOK()[0]
+
+    if serObj is None:
+        show_message("Error", "Port not detected.")
+        return
     print("Ser object, ", serObj, serObj.isOpen())
 
     def on_close(event):
         print("Event: ", event)
         serObj.close()
-
 
     def Just_Visualize_Data():
         if serObj is None:
