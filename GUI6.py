@@ -6,7 +6,7 @@ import tkinter.font as tkFont
 from tkinter import messagebox
 
 import joblib
-
+from tkinter import filedialog
 from Communication import ComOK
 from CollectData import collect_dataset, fill_buffer
 from datetime import datetime
@@ -121,9 +121,14 @@ def Collect_Data_Page():
             show_message("Error", "Cannot collect data!\nPlug the Device!\nStart Communication First!")
         else:
             try:
+                default_path = os.path.join(os.getcwd(), "DataSets")
+                DataSetFolderPath = filedialog.askdirectory(initialdir=default_path)
                 numOfSamples = getNumOfSamples()
                 dataTime = getTime()
-                x = collect_dataset(numOfSamples, dataTime, datasize_Main, serObj)
+                if DataSetFolderPath == "":
+                    show_message("Error", "No folder selected.")
+                else:
+                    x = collect_dataset(numOfSamples, dataTime, datasize_Main, serObj, DataSetFolderPath)
                 print("from entries", numOfSamples, dataTime)
                 print("defaultNumberOfSamples", defaultNumberOfSamples, "defaultDataTime", defaultDataTime)
             except:
@@ -151,7 +156,7 @@ def Collect_Data_Page():
     collectDataButton["font"] = ft
     collectDataButton["fg"] = "#000000"
     collectDataButton["justify"] = "center"
-    collectDataButton["text"] = "Collect Data"
+    collectDataButton["text"] = "Collect Data\nBrowse Folder"
     collectDataButton.place(x=20, y=50, width=150, height=40)
     collectDataButton["command"] = collectData_command
 
@@ -218,8 +223,10 @@ def Train_ML_Model_Page():
             if YN == "yes":
                 # dataSet = collect_dataset(defaultNumberOfSamples, defaultDataTime, datasize_Main, serObj)
 
+                default_path = os.path.join(os.getcwd(), "DataSets")
+                DataSetFolderPath = filedialog.askdirectory(initialdir=default_path)
                 # TEMPORARILY - To reduce time while debugging
-                dataSet = collect_dataset(1000, defaultDataTime, datasize_Main, serObj)
+                dataSet = collect_dataset(1000, defaultDataTime, datasize_Main, serObj, DataSetFolderPath)
 
                 # store data in the file - Done in Collect_dataset function
                 # train from stored data
@@ -253,23 +260,35 @@ def Train_ML_Model_Page():
     def Train_ML_Existing_Data():
         global trained_models
 
+        folder_path = filedialog.askdirectory()
+        print(folder_path)
+
         # check Files does exist
         # train
-        if find_content("x_data.txt") and find_content("y_data.txt") and find_content("z_data.txt"):
+        if find_content(f"{folder_path}/x_data.txt") and find_content(f"{folder_path}/y_data.txt") and find_content(
+                f"{folder_path}/z_data.txt"):
             dataSet = []
             dataSet.clear()
-            with open("x_data.txt", "rt") as x_data_file:
-                # Final value is ignored since it is ''.
-                dataSet.append(np.fromiter(x_data_file.read().split(" ")[:-1], dtype=np.float_).reshape(-1, 1))
-            with open("y_data.txt", "rt") as y_data_file:
-                # Final value is ignored since it is ''.
-                dataSet.append(np.fromiter(y_data_file.read().split(" ")[:-1], dtype=np.float_).reshape(-1, 1))
-            with open("z_data.txt", "rt") as z_data_file:
-                # Final value is ignored since it is ''.
-                dataSet.append(np.fromiter(z_data_file.read().split(" ")[:-1], dtype=np.float_).reshape(-1, 1))
+            try:
+                with open(f"{folder_path}/x_data.txt", "rt") as x_data_file:
+                    # Final value is ignored since it is ''.
+                    dataSet.append(np.fromiter(x_data_file.read().split(" ")[:-1], dtype=np.float_).reshape(-1, 1))
+                with open(f"{folder_path}/y_data.txt", "rt") as y_data_file:
+                    # Final value is ignored since it is ''.
+                    dataSet.append(np.fromiter(y_data_file.read().split(" ")[:-1], dtype=np.float_).reshape(-1, 1))
+                with open(f"{folder_path}/z_data.txt", "rt") as z_data_file:
+                    # Final value is ignored since it is ''.
+                    dataSet.append(np.fromiter(z_data_file.read().split(" ")[:-1], dtype=np.float_).reshape(-1, 1))
+            except:
+                show_message("Error", "Error reading files.\nIrrelevant data in files.")
+                return
 
-            with Pool() as pool:
-                trained_models = pool.map(model, (dataSet[0], dataSet[1], dataSet[2]))
+            try:
+                with Pool() as pool:
+                    trained_models = pool.map(model, (dataSet[0], dataSet[1], dataSet[2]))
+            except ValueError:
+                show_message("Error", "Error training models.\nCheck the data in the files.")
+                return
 
             # Store trained models
             trained_models[0][0].save("Models/x_model.keras")
@@ -292,7 +311,7 @@ def Train_ML_Model_Page():
             show_message("Information", "Model trained from existing data.")
         else:
             show_message("Error", "No files existing.\n"
-                                  "Make sure tha files are named as \"x_data.txt\" likewise.")
+                                  "Or filed does not have content on it.")
 
     def Train_ML_Load_From_File():
         global trained_models
@@ -345,7 +364,7 @@ def Train_ML_Model_Page():
     trainFromExistingData["font"] = ft
     trainFromExistingData["fg"] = "#000000"
     trainFromExistingData["justify"] = "center"
-    trainFromExistingData["text"] = "Train With Existing Data"
+    trainFromExistingData["text"] = "Train With Existing Data\n Browse Files"
     trainFromExistingData.place(x=20, y=120, width=200, height=40)
     trainFromExistingData["command"] = Train_ML_Existing_Data
 

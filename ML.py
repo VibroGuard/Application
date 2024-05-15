@@ -73,6 +73,8 @@ def get_mae(model, xdata):
 
 
 def model(data_buffer):
+    if len(data_buffer) == 0:
+        raise ValueError("Empty dataset.")
     seq_size = 30
 
     # print("Dataset received.")
