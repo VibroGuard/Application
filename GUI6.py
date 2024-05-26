@@ -22,7 +22,7 @@ trained_models = None
 datasize_Main = 256
 
 defaultNumberOfSamples = 20000
-defaultDataTime = 100
+defaultDataTime = 1000
 sampling_frequency = 200
 
 
@@ -224,43 +224,47 @@ def Train_ML_Model_Page():
                 # dataSet = collect_dataset(defaultNumberOfSamples, defaultDataTime, datasize_Main, serObj)
 
                 default_path = os.path.join(os.getcwd(), "DataSets")
-                DataSetFolderPath = filedialog.askdirectory(initialdir=default_path)
+                DataSetFolderPath = filedialog.askdirectory(initialdir=default_path, title="Select where you want to save the collected data...")
                 # TEMPORARILY - To reduce time while debugging
                 dataSet = collect_dataset(1000, defaultDataTime, datasize_Main, serObj, DataSetFolderPath)
 
-                # store data in the file - Done in Collect_dataset function
-                # train from stored data
-                with Pool() as pool:
-                    trained_models = pool.map(model, (dataSet[0], dataSet[1], dataSet[2]))
+                try:
+                    with Pool() as pool:
+                        trained_models = pool.map(model, (dataSet[0], dataSet[1], dataSet[2]))
+                    show_message("Information", "Models trained successfully.\nSelect path to save the trained models for future use...")
+                except ValueError:
+                    show_message("Error", "Error training models.\nTry again.")
+
+                folder_path = filedialog.askdirectory(title="Select where you want to save the trained ML models...")
+                print(folder_path)
 
                 # Store trained models
-                trained_models[0][0].save("Models/x_model.keras")
-                trained_models[1][0].save("Models/y_model.keras")
-                trained_models[2][0].save("Models/z_model.keras")
+                trained_models[0][0].save(f"{folder_path}/x_model.keras")
+                trained_models[1][0].save(f"{folder_path}/y_model.keras")
+                trained_models[2][0].save(f"{folder_path}/z_model.keras")
 
                 # Storing fitted scalers
-                joblib.dump(trained_models[0][2], "Models/x_scaler.save")
-                joblib.dump(trained_models[1][2], "Models/y_scaler.save")
-                joblib.dump(trained_models[2][2], "Models/z_scaler.save")
+                joblib.dump(trained_models[0][2], f"{folder_path}/x_scaler.save")
+                joblib.dump(trained_models[1][2], f"{folder_path}/y_scaler.save")
+                joblib.dump(trained_models[2][2], f"{folder_path}/z_scaler.save")
 
                 # Storing max_MAE values
-                with open("Models/x_maxMAE.txt", "wt") as x_maxMAE:
+                with open(f"{folder_path}/x_maxMAE.txt", "wt") as x_maxMAE:
                     x_maxMAE.write(str(trained_models[0][1]))
-                with open("Models/y_maxMAE.txt", "wt") as y_maxMAE:
+                with open(f"{folder_path}/y_maxMAE.txt", "wt") as y_maxMAE:
                     y_maxMAE.write(str(trained_models[1][1]))
-                with open("Models/z_maxMAE.txt", "wt") as z_maxMAE:
+                with open(f"{folder_path}/z_maxMAE.txt", "wt") as z_maxMAE:
                     z_maxMAE.write(str(trained_models[2][1]))
 
-                show_message("Information", "Model trained from new data.")
+                show_message("Information", f"ML models saved successfully at \n{folder_path}")
             else:
                 show_message("Information",
-                             "Data collection cancelled.\nGo to Collect Data page to set parameters.\n"
-                             "Collect data on that page.\nCome here.\nClick on Train With Existing Data.")
+                             "Data collection cancelled.\nGo to \"Collect Data\" page to set parameters.")
 
     def Train_ML_Existing_Data():
         global trained_models
 
-        folder_path = filedialog.askdirectory()
+        folder_path = filedialog.askdirectory(title="Select the folder containing collected data files...")
         print(folder_path)
 
         # check Files does exist
@@ -286,67 +290,74 @@ def Train_ML_Model_Page():
             try:
                 with Pool() as pool:
                     trained_models = pool.map(model, (dataSet[0], dataSet[1], dataSet[2]))
+                show_message("Information", "Models trained successfully.\nSelect path to save the trained models for future use...")
             except ValueError:
                 show_message("Error", "Error training models.\nCheck the data in the files.")
                 return
 
+            folder_path = filedialog.askdirectory(title="Select where you want to save the trained ML models...")
+            print(folder_path)
+
             # Store trained models
-            trained_models[0][0].save("Models/x_model.keras")
-            trained_models[1][0].save("Models/y_model.keras")
-            trained_models[2][0].save("Models/z_model.keras")
+            trained_models[0][0].save(f"{folder_path}/x_model.keras")
+            trained_models[1][0].save(f"{folder_path}/y_model.keras")
+            trained_models[2][0].save(f"{folder_path}/z_model.keras")
 
             # Storing fitted scalers
-            joblib.dump(trained_models[0][2], "Models/x_scaler.save")
-            joblib.dump(trained_models[1][2], "Models/y_scaler.save")
-            joblib.dump(trained_models[2][2], "Models/z_scaler.save")
+            joblib.dump(trained_models[0][2], f"{folder_path}/x_scaler.save")
+            joblib.dump(trained_models[1][2], f"{folder_path}/y_scaler.save")
+            joblib.dump(trained_models[2][2], f"{folder_path}/z_scaler.save")
 
             # Storing max_MAE values
-            with open("Models/x_maxMAE.txt", "wt") as x_maxMAE:
+            with open(f"{folder_path}/x_maxMAE.txt", "wt") as x_maxMAE:
                 x_maxMAE.write(str(trained_models[0][1]))
-            with open("Models/y_maxMAE.txt", "wt") as y_maxMAE:
+            with open(f"{folder_path}/y_maxMAE.txt", "wt") as y_maxMAE:
                 y_maxMAE.write(str(trained_models[1][1]))
-            with open("Models/z_maxMAE.txt", "wt") as z_maxMAE:
+            with open(f"{folder_path}/z_maxMAE.txt", "wt") as z_maxMAE:
                 z_maxMAE.write(str(trained_models[2][1]))
 
-            show_message("Information", "Model trained from existing data.")
+            show_message("Information", f"ML models saved successfully at \n{folder_path}")
         else:
             show_message("Error", "No files existing.\n"
                                   "Or filed does not have content on it.")
 
     def Train_ML_Load_From_File():
         global trained_models
-        # Models are expected to be in a separate folder called "Models".
+
+        folder_path = filedialog.askdirectory(title="Select the folder containing saved ML models...")
+        print(folder_path)
 
         temp_trained_models = []
 
         try:
             # Retrieving stored values
-            x_loaded_model = load_model("Models/x_model.keras")
-            x_loaded_scaler = joblib.load('Models/x_scaler.save')
-            with open("Models/x_maxMAE.txt", "rt") as x_maxMAE:
+            x_loaded_model = load_model(f"{folder_path}/x_model.keras")
+            x_loaded_scaler = joblib.load(f"{folder_path}/x_scaler.save")
+            with open(f"{folder_path}/x_maxMAE.txt", "rt") as x_maxMAE:
                 x_maxMAE_value = x_maxMAE.read()
             temp_trained_models.append((x_loaded_model, x_maxMAE_value, x_loaded_scaler))
 
-            y_loaded_model = load_model("Models/y_model.keras")
-            y_loaded_scaler = joblib.load('Models/y_scaler.save')
-            with open("Models/y_maxMAE.txt", "rt") as y_maxMAE:
+            y_loaded_model = load_model(f"{folder_path}/y_model.keras")
+            y_loaded_scaler = joblib.load(f"{folder_path}/y_scaler.save")
+            with open(f"{folder_path}/y_maxMAE.txt", "rt") as y_maxMAE:
                 y_maxMAE_value = y_maxMAE.read()
             temp_trained_models.append((y_loaded_model, y_maxMAE_value, y_loaded_scaler))
 
-            z_loaded_model = load_model("Models/z_model.keras")
-            z_loaded_scaler = joblib.load('Models/z_scaler.save')
-            with open("Models/z_maxMAE.txt", "rt") as z_maxMAE:
+            z_loaded_model = load_model(f"{folder_path}/z_model.keras")
+            z_loaded_scaler = joblib.load(f"{folder_path}/z_scaler.save")
+            with open(f"{folder_path}/z_maxMAE.txt", "rt") as z_maxMAE:
                 z_maxMAE_value = z_maxMAE.read()
             temp_trained_models.append((z_loaded_model, z_maxMAE_value, z_loaded_scaler))
+
         except:
             show_message("Error",
-                         "Error loading files.\nCheck whether all the required files are in the \"Models\" folder.")
+                         "Error loading files.\nCheck whether all the required files are in the selected folder.")
             return
 
         if len(temp_trained_models) > 0:
             # Files present. So load them into the ML models.
             trained_models = temp_trained_models
-            show_message("Information", "Models loaded from files successfully.")
+            show_message("Information", f"Models successfully loaded from\n{folder_path}")
 
     trainFromNewData = tk.Button(main_frame)
     trainFromNewData["bg"] = "#f0f0f0"
