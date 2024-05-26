@@ -10,6 +10,7 @@ from tkinter import filedialog
 from Communication import ComOK
 from CollectData import collect_dataset, fill_buffer
 from datetime import datetime
+import time
 from multiprocessing import Pool
 from Graphs import *
 from ML import model, predict
@@ -510,6 +511,33 @@ def Visualize_Data_Page():
                                                    np.array(z_data).reshape(-1, 1)))
                 else:
                     continue
+
+                # Giving alerts
+
+                last_updated_time = time.time()
+                first_detected_time = 0
+                anomaly_time_threshold = 10     # seconds
+                anomaly_count_threshold = 100   # individual anomaly points in the graph
+
+                anomaly_count = len(anomaly_indices[0]) + len(anomaly_indices[1]) + len(anomaly_indices[2])
+                if anomaly_count >= anomaly_count_threshold:
+                    # Give alerts
+                    # But not immediately, use a time threshold as well.
+                    if not first_detected_time:
+                        first_detected_time = time.time()
+                    last_updated_time = time.time()
+
+
+                if (first_detected_time != 0 and time.time() - first_detected_time >= anomaly_time_threshold) and (time.time() - last_updated_time <= anomaly_time_threshold):
+                    serObj.write("ALERT")
+                    print("ALERT!")
+                else:
+                    serObj.write("NO_ALERT")
+                    print("NO ALERT.")
+                    if time.time() - first_detected_time >= anomaly_time_threshold:  # This condition should still be true.
+                        first_detected_time = 0  # Re-zero, so that new anomalies after some time can be detected.
+
+
 
                 visualize_data_time_only(x_data, y_data, z_data, sampling_frequency, fig, axs)
 
