@@ -335,19 +335,19 @@ def Train_ML_Model_Page():
             x_loaded_model = load_model(f"{folder_path}/x_model.keras")
             x_loaded_scaler = joblib.load(f"{folder_path}/x_scaler.save")
             with open(f"{folder_path}/x_maxMAE.txt", "rt") as x_maxMAE:
-                x_maxMAE_value = x_maxMAE.read()
+                x_maxMAE_value = float(x_maxMAE.read())
             temp_trained_models.append((x_loaded_model, x_maxMAE_value, x_loaded_scaler))
 
             y_loaded_model = load_model(f"{folder_path}/y_model.keras")
             y_loaded_scaler = joblib.load(f"{folder_path}/y_scaler.save")
             with open(f"{folder_path}/y_maxMAE.txt", "rt") as y_maxMAE:
-                y_maxMAE_value = y_maxMAE.read()
+                y_maxMAE_value = float(y_maxMAE.read())
             temp_trained_models.append((y_loaded_model, y_maxMAE_value, y_loaded_scaler))
 
             z_loaded_model = load_model(f"{folder_path}/z_model.keras")
             z_loaded_scaler = joblib.load(f"{folder_path}/z_scaler.save")
             with open(f"{folder_path}/z_maxMAE.txt", "rt") as z_maxMAE:
-                z_maxMAE_value = z_maxMAE.read()
+                z_maxMAE_value = float(z_maxMAE.read())
             temp_trained_models.append((z_loaded_model, z_maxMAE_value, z_loaded_scaler))
 
         except:
@@ -483,6 +483,12 @@ def Visualize_Data_Page():
             y_data = [0.0] * datasize_Main
             z_data = [0.0] * datasize_Main
 
+            # Parameters and thresholds about giving alerts
+            last_updated_time = time.time()
+            first_detected_time = 0
+            anomaly_time_threshold = 5  # seconds
+            anomaly_count_threshold = 100  # individual anomaly points in the graph
+
             while True:
                 if not serObj.isOpen():
                     print("Breaking while loop...")
@@ -513,26 +519,22 @@ def Visualize_Data_Page():
                     continue
 
                 # Giving alerts
-
-                last_updated_time = time.time()
-                first_detected_time = 0
-                anomaly_time_threshold = 10     # seconds
-                anomaly_count_threshold = 100   # individual anomaly points in the graph
-
                 anomaly_count = len(anomaly_indices[0]) + len(anomaly_indices[1]) + len(anomaly_indices[2])
                 if anomaly_count >= anomaly_count_threshold:
                     # Give alerts
                     # But not immediately, use a time threshold as well.
+                    print(first_detected_time, not first_detected_time)
                     if not first_detected_time:
                         first_detected_time = time.time()
                     last_updated_time = time.time()
 
+                print("\t\t\tcount", anomaly_count, "first", first_detected_time, "elapsed", time.time() - first_detected_time, "last", time.time() - last_updated_time)
 
                 if (first_detected_time != 0 and time.time() - first_detected_time >= anomaly_time_threshold) and (time.time() - last_updated_time <= anomaly_time_threshold):
-                    serObj.write("ALERT")
+                    serObj.write("ALERT\n".encode('utf-8'))
                     print("ALERT!")
                 else:
-                    serObj.write("NO_ALERT")
+                    serObj.write("NO_ALERT\n".encode('utf-8'))
                     print("NO ALERT.")
                     if time.time() - first_detected_time >= anomaly_time_threshold:  # This condition should still be true.
                         first_detected_time = 0  # Re-zero, so that new anomalies after some time can be detected.
